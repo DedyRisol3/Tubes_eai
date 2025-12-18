@@ -1,0 +1,6 @@
+Penjahitku = http://127.0.0.1:8000
+
+loyality app = http://127.0.0.1:8001
+loyality service =http://127.0.0.1:9001
+
+DB_DATABASE=tugasbesar
