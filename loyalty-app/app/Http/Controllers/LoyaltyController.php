@@ -20,7 +20,7 @@ class LoyaltyController extends Controller
     }
 
     /**
-     * Proses penukaran poin menjadi pulsa
+     * Proses penukaran poin menjadi pulsa secara langsung
      */
     public function redeemPulsa(Request $request)
     {
@@ -43,15 +43,18 @@ class LoyaltyController extends Controller
 
         $pulsaAmount = $packages[$validated['points_used']];
 
-        // Cek saldo poin user dari loyalty-service
+        // Alur penukaran ke loyalty-service
         try {
-            $loyaltyServiceUrl = env('VITE_LOYALTY_SERVICE_URL', 'http://localhost:8001');
+            // Mengambil URL Service dari .env (Default ke port 9001 sesuai setting loyalty-service Anda)
+            $loyaltyServiceUrl = env('VITE_LOYALTY_SERVICE_URL', 'http://localhost:9001');
+            
+            // 1. Cek saldo poin user ke loyalty-service
             $pointsResponse = Http::get("{$loyaltyServiceUrl}/api/points/user/{$validated['user_id']}");
             
             if (!$pointsResponse->successful()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Gagal mengecek saldo poin'
+                    'message' => 'Gagal terhubung ke layanan poin'
                 ], 500);
             }
 
@@ -64,40 +67,44 @@ class LoyaltyController extends Controller
                 ], 400);
             }
 
-            // Kurangi poin di loyalty-service dengan redeem
+            // 2. Kirim request pemotongan poin ke loyalty-service
+            // PERBAIKAN: Menggunakan 'points_used' agar sinkron dengan validasi di RedemptionController
             $redeemResponse = Http::post("{$loyaltyServiceUrl}/api/redeem", [
                 'user_id' => $validated['user_id'],
-                'points' => $validated['points_used'],
+                'points_used' => $validated['points_used'],
                 'order_id' => 'PULSA-' . time()
             ]);
 
             if (!$redeemResponse->successful()) {
+                $errorMsg = $redeemResponse->json()['message'] ?? 'Gagal memproses penukaran poin';
                 return response()->json([
                     'success' => false,
-                    'message' => 'Gagal memproses penukaran poin'
-                ], 500);
+                    'message' => $errorMsg
+                ], 422);
             }
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat menghubungi loyalty service: ' . $e->getMessage()
+                'message' => 'Terjadi kesalahan koneksi: ' . $e->getMessage()
             ], 500);
         }
 
-        // Simpan request penukaran pulsa
+        // 3. Simpan data penukaran di database lokal loyalty-app
+        // PERBAIKAN: Status langsung 'completed' agar penukaran dianggap berhasil/selesai secara instan
         $redemption = PulsaRedemption::create([
             'user_id' => $validated['user_id'],
             'phone_number' => $validated['phone_number'],
             'provider' => $validated['provider'],
             'points_used' => $validated['points_used'],
             'pulsa_amount' => $pulsaAmount,
-            'status' => 'pending'
+            'status' => 'completed',
+            'processed_at' => now()
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Permintaan penukaran pulsa berhasil! Pulsa akan diproses dalam 1x24 jam.',
+            'message' => 'Penukaran poin berhasil! Pulsa sedang dalam proses pengiriman.',
             'data' => [
                 'id' => $redemption->id,
                 'phone_number' => $redemption->phone_number,
