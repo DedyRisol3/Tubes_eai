@@ -28,5 +28,8 @@ return [
     |
     */
     'rupiah_per_point' => env('LOYALTY_RUPIAH_PER_POINT', 5000),
+
+    'url' => env('LOYALTY_APP_URL', 'http://127.0.0.1:8001'),
+    
 ];
 

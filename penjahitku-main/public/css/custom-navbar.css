@@ -1,0 +1,14 @@
+/* Tambahan styling kecil untuk tombol Loyalty */
+.btn-loyalty {
+    border: 1px solid #07a69b;
+    color: #07a69b;
+    background: transparent;
+    border-radius: 6px;
+    padding: 8px 14px;
+    text-decoration: none;
+}
+.btn-loyalty:hover {
+    background: #07a69b;
+    color: #ffffff;
+    text-decoration: none;
+}
