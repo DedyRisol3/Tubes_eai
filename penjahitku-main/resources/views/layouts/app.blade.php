@@ -11,8 +11,9 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
+    {{-- Custom navbar CSS (pastikan file ini ada di public/css/) --}}
     <link rel="stylesheet" href="{{ asset('css/custom-navbar.css') }}">
-
+    
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -47,10 +48,22 @@
                     @auth
                          <div class="user-greeting" id="user-links">
                             <span>Halo, <strong id="user-name">{{ explode(' ', Auth::user()->name)[0] }}</strong>!</span>
-                             @if(Auth::user()->is_admin)
+
+                            {{-- Jika user admin, link ke admin panel --}}
+                            @if(Auth::user()->is_admin)
                                 <a href="{{ route('admin.dashboard') }}" class="admin-link ml-4">Admin Panel</a>
                             @endif
-                            <form method="POST" action="{{ route('logout') }}" style="margin: 0;" class="ml-4">
+
+                            {{-- Tombol Loyalty (hanya untuk user yang login) --}}
+                            <a href="{{ rtrim(config('loyalty.url', env('LOYALTY_APP_URL')), '/') }}/dashboard"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="btn-loyalty-link ml-4"
+                               title="Buka Loyalty App">
+                                <i class="fa fa-gem"></i> Loyalty
+                            </a>
+
+                            <form method="POST" action="{{ route('logout') }}" style="margin: 0;" class="ml-4 d-inline">
                                 @csrf
                                 <a href="{{ route('logout') }}" class="logout-btn"
                                    onclick="event.preventDefault(); this.closest('form').submit();" id="logout-btn">Logout</a>
